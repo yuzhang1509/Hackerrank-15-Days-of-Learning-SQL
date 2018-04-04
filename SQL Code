@@ -1,0 +1,26 @@
+SELECT t3.submission_date,t3.hacker_cnt,t4.hacker_id,h.name
+FROM (
+      SELECT submission_date,COUNT(DISTINCT hacker_id) AS hacker_cnt
+      FROM (
+            SELECT hacker_id, submission_date,
+                DENSE_RANK ()
+                OVER (PARTITION BY hacker_id ORDER BY submission_date) AS day_cnt
+            FROM Submissions) t1
+      WHERE DATEDIFF(day,'2016-03-01',submission_date)+1=t1.day_cnt
+      GROUP BY submission_date
+      ) t3
+JOIN (
+      SELECT submission_date,hacker_id,sub_cnt
+      FROM (
+            SELECT submission_date,hacker_id,COUNT(*) AS sub_cnt,
+                DENSE_RANK ()
+                OVER (PARTITION BY submission_date ORDER BY COUNT(*) DESC,hacker_id ASC) AS rank_result
+            FROM Submissions
+            GROUP BY submission_date,hacker_id) t2
+      WHERE t2.rank_result=1
+      ) t4
+ON t3.submission_date=t4.submission_date
+LEFT JOIN Hackers h
+ON t4.hacker_id=h.hacker_id
+ORDER BY t3.submission_date;
+      
